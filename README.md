@@ -1,6 +1,18 @@
 
+# Smart Web Applications 
+   Nowadays in order to to analyze social interaction across the Web we have to write smarter programs to take advantage of the information we collect every day. To this end in this project I'm breaking down the complex subject of machine learning algorithms into practical, easy-to-understand examples that can be used directly.
+## Summary 
+* Making Recommendations
+* Clustering (Discovering Groups)
+* Searching and Ranking
+* Optimization
+* Document Filtering
+* Modeling with Decision Trees
+* Building Price Models
+* Advanced Classification
+
 ## 1. Making Recommendations
-Use a group of people's preferences to make recommendations to other people.
+Collaborative filtering techniques that use a group of people's preferences to make recommendations to other people. 
 ### Dataset of preferences 
 The following dataset represents people and their preferences:
 
@@ -54,7 +66,7 @@ critics={
 ```
 
 ### Finding Similar Users
-Now we are going define some functions in order to calculate the similarity score later (how similar people are in their tastes). There are many ways to do that here is some:
+Now we're going to define some functions to calculate the similarity score. We do this by comparing each person with every other person(how similar people are in their tastes). There are many ways to do that here is some:
 * Euclidean distance
 * Pearson correlation
 
@@ -82,10 +94,8 @@ def sim_distance(prefs,person1,person2):
     sum_of_squares=sum([pow(prefs[person1][item]-prefs[person2][item],2) for item in prefs[person1] if item in prefs[person2]])
     
     return 1/(1+sum_of_squares)
-```
 
 
-```python
 # Pearson correlation coefficient: Returns a score for p1 and p2
 def sim_pearson(prefs,p1,p2):
     # Get the list of mutually rated items
@@ -126,7 +136,7 @@ Score everyone against a given persoon and finds the closest matches.
 
 
 ```python
-# Returns the best matches for a given person 
+# returns the best matches for a given person 
 def topMatches(prefs,person,n=5,similarity=sim_pearson):
     scores=[(similarity(prefs,person,other),other) for other in prefs if other!=person]
     scores.sort()
@@ -136,7 +146,7 @@ def topMatches(prefs,person,n=5,similarity=sim_pearson):
 
 
 ```python
-# Test: top matches for Toby 
+# top matches for a given person  
 topMatches(critics,'Toby',n=5)
 ```
 
@@ -152,10 +162,11 @@ topMatches(critics,'Toby',n=5)
 
 
 ### Recommending Items
+In the previous section we have been recommending people that matches for a given person, now we're going to recommend items (movies) for a given person.
 
 
 ```python
-# Gets recommendations for a person
+# gets recommendations for a person
 def getRecommendations(prefs,person,similarity=sim_pearson):
     totals={}
     simSums={}
@@ -168,17 +179,17 @@ def getRecommendations(prefs,person,similarity=sim_pearson):
         for item in prefs[other]:
             # only score movies a person I haven't seen yet
             if item not in prefs[person] or prefs[person][item]==0:
-                # Similarity * Score
+                # similarity * score
                 totals.setdefault(item,0)
                 totals[item]+=prefs[other][item]*sim
-                # Sum of similarities
+                # sum of similarities
                 simSums.setdefault(item,0)
                 simSums[item]+=sim
             
-    # Create the normalized list
+    # create the normalized list
     rankings=[(total/simSums[item],item) for item,total in totals.items( )]
     
-    # Return the sorted list
+    # return the sorted list
     rankings.sort( )
     rankings.reverse( )
     return rankings
@@ -186,6 +197,7 @@ def getRecommendations(prefs,person,similarity=sim_pearson):
 
 
 ```python
+# recommended movies for a given person (Toby in this case)
 getRecommendations(critics,'Toby',similarity=sim_distance)
 ```
 
@@ -198,17 +210,61 @@ getRecommendations(critics,'Toby',similarity=sim_distance)
 
 
 
+### Matching products 
+Now we're going to compare products to each other instead of comparing people (previous sections). In this case the similarity can be defined by looking at who liked a particular item and seeing the other things they liked. 
+
+Before we start we have to swap the people and the items:
+![swap the people and the items](imgs/1.png)
+
 
 ```python
-getRecommendations(critics,'Toby',similarity=sim_pearson)
+# swap the people and the items
+def transformPrefs(prefs):
+    result={}
+    for person in prefs:
+        for item in prefs[person]:
+            result.setdefault(item,{})
+        
+            # Flip item and person
+            result[item][person]=prefs[person][item]
+    return result
+```
+
+And now let's test that by finding the set of movies that matches (similar) Superman Returns:
+
+
+```python
+# swap 
+movies = transformPrefs(critics)
+# returns the best matches for a given movie: 
+    # if you're watcging Superman Returns we recommend you these too:
+topMatches(movies,'Superman Returns',n=5)
 ```
 
 
 
 
-    [(3.3477895267131013, 'The Night Listener'),
-     (2.8325499182641614, 'Lady in the Water'),
-     (2.5309807037655645, 'Just My Luck')]
+    [(0.6579516949597695, 'You, Me and Dupree'),
+     (0.4879500364742689, 'Lady in the Water'),
+     (0.11180339887498941, 'Snakes on a Plane'),
+     (-0.1798471947990544, 'The Night Listener'),
+     (-0.42289003161103106, 'Just My Luck')]
+
+
+
+Negative correlation scores indicate that those who like the given movie tend to dislike others.
+
+Now let's say you’re trying to decide whom to invite to a premiere? Well, you can get recommended critics for a movie: 
+
+
+```python
+getRecommendations(movies,'Just My Luck')
+```
+
+
+
+
+    [(4.0, 'Michael Phillips'), (3.0, 'Jack Matthews')]
 
 
 
